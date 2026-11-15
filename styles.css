@@ -1,0 +1,142 @@
+/* ---------- 1. TOKENS ----------
+   Custom properties = one source of truth; no magic numbers below. */
+:root {
+  --c-ink: #10231f;        /* sidebar/header text base */
+  --c-surface: #f3f5f4;    /* page background */
+  --c-card: #ffffff;
+  --c-line: #d7dedb;
+  --c-accent: #e0a526;     /* focus ring on dark backgrounds */
+  --c-focus: #8a5a00;      /* focus ring on light backgrounds: about 5:1 contrast (amber on white fails the 3:1 minimum) */
+  --c-up: #17803d;
+  --c-down: #b42318;
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --radius: 0.5rem;
+  --sidebar-w: 15rem;
+  --card-min: 14rem;       /* smallest width a metric card may shrink to */
+}
+
+/* ---------- 2. RESET ----------
+   border-box: width includes padding/border, so grid math stays predictable. */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif; /* system font = zero font download, best LCP */
+  line-height: 1.5;
+  color: var(--c-ink);
+  background: var(--c-surface);
+}
+
+/* ---------- 3. PAGE SHELL (CSS Grid) ----------
+   Grid is used here because the shell is two-dimensional (rows AND columns).
+   Named areas make the mobile re-flow a one-line change. */
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr); /* minmax(0,…) stops wide content blowing out the column */
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "nav header"
+    "nav main"
+    "nav footer";
+  min-height: 100dvh; /* dvh avoids the mobile address-bar jump that 100vh causes */
+}
+.site-header { grid-area: header; }
+.sidebar     { grid-area: nav; }
+.content     { grid-area: main; }
+.site-footer { grid-area: footer; }
+
+/* ---------- 4. SIDEBAR (Flexbox) ----------
+   Flexbox is used inside because navigation is a one-dimensional list. */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-2);
+  background: var(--c-ink);
+  color: #fff;                /* many links scroll inside the sidebar */
+}
+.sidebar ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);   /* gap instead of margins: no stray margin on the last item */
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sidebar a {
+  display: block;        /* whole row clickable = larger touch target */
+  padding: var(--space-1) var(--space-2);
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius);
+}
+.sidebar a:hover,
+.sidebar a[aria-current="page"] { background: rgb(255 255 255 / 0.12); }
+
+/* ---------- 5. HEADER / FOOTER ---------- */
+.site-header,
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;                 /* wraps instead of overflowing on narrow screens */
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--c-card);
+  border-bottom: 1px solid var(--c-line);
+}
+.site-footer { border-bottom: 0; border-top: 1px solid var(--c-line); font-size: 0.875rem; }
+
+/* ---------- 6. METRIC GRID ----------
+   auto-fit + minmax = intrinsic responsiveness: column count adapts to
+   available width with NO breakpoints, so fewer media queries to maintain. */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(var(--card-min), 100%), 1fr)); /* min(…,100%) prevents overflow below card-min */
+  gap: var(--space-2);
+  padding: var(--space-3);
+  max-width: 90rem;                /* stops cards stretching on ultra-wide screens */
+  margin: 0 auto;
+  list-style: none;
+}
+.card {
+  display: flex;                   /* flex column pins the trend line to the card bottom */
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  overflow-wrap: anywhere;         /* long values wrap instead of overflowing */
+  background: var(--c-card);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+}
+.card h2 { margin: 0; font-size: 0.875rem; font-weight: 500; }
+.card .value { font-size: clamp(1.5rem, 1.1rem + 1.5vw, 2.25rem); font-weight: 700; } /* fluid type, no jumps */
+.up   { color: var(--c-up); }
+.down { color: var(--c-down); }
+.wide { grid-column: 1 / -1; }     /* featured card spans every column at any width */
+
+/* ---------- 7. ACCESSIBILITY ---------- */
+:focus-visible { outline: 3px solid var(--c-focus); outline-offset: 2px; } /* keyboard focus only */
+.sidebar :focus-visible { outline-color: var(--c-accent); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+@media print { .sidebar { display: none; } }
+
+/* ---------- 8. RESPONSIVE TRANSITION ----------
+   One breakpoint where the layout STRUCTURE changes (sidebar → top bar).
+   em-based so it respects user font-size settings. */
+@media (max-width: 48em) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "header"
+      "nav"
+      "main"
+      "footer";
+  }
+  .sidebar {  position: static; max-height: none; padding: var(--space-1) var(--space-2); }
+  .sidebar ul { flex-direction: row; overflow-x: auto; } /* swipeable tab bar, no hamburger JS needed */
+  .sidebar a { white-space: nowrap; }
+}
